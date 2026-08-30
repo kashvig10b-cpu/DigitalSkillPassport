@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # MongoDB Database Service
+  mongodb:
+    image: mongo:7.0
+    container_name: dsp_mongodb
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: digital_skill_passport
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - dsp_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Express + Node.js + Socket.IO Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dsp_backend
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/digital_skill_passport
+      JWT_SECRET: production_jwt_super_secret_key_change_me_in_prod_994827
+      JWT_EXPIRE: 7d
+      CLIENT_URL: http://localhost
+      UPLOAD_DIR: uploads
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - dsp_network
+
+  # React 18 + Vite + Nginx Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dsp_frontend
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+    networks:
+      - dsp_network
+
+networks:
+  dsp_network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  backend_uploads:
+    driver: local

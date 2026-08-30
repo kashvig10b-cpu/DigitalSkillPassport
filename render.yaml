@@ -1,0 +1,47 @@
+services:
+  # Backend API & WebSocket Service
+  - type: web
+    name: digital-skill-passport-api
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: digital-skill-passport-web
+          property: host
+
+  # Frontend React SPA
+  - type: web
+    name: digital-skill-passport-web
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: digital-skill-passport-api
+          property: host
+          path: /api
+      - key: VITE_SOCKET_URL
+        fromService:
+          type: web
+          name: digital-skill-passport-api
+          property: host
