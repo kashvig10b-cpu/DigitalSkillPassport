@@ -23,6 +23,16 @@ const findCachedMongod = () => {
 const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/digital_skill_passport';
 
+  // If a cloud MongoDB URI is provided (e.g. MongoDB Atlas on Railway/production)
+  if (process.env.MONGODB_URI && !process.env.MONGODB_URI.includes('127.0.0.1')) {
+    console.log('[MongoDB] Connecting to cloud MongoDB Atlas cluster...');
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 15000,
+    });
+    console.log(`[MongoDB] Connected to cloud database: ${conn.connection.host}:${conn.connection.port}/${conn.connection.name}`);
+    return conn;
+  }
+
   // Step 1: Try connecting directly if mongod is already running (from a previous server session)
   try {
     const conn = await mongoose.connect(uri, {
