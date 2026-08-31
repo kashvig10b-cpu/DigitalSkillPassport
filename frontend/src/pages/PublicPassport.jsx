@@ -235,9 +235,10 @@ export default function PublicPassport() {
 
       {/* QR Modal View */}
       {showQR && (() => {
-        const scanHost = lanIp || (window.location.hostname !== 'localhost' ? window.location.hostname : '10.167.66.101');
-        const port = window.location.port ? `:${window.location.port}` : '';
-        const mobileScanUrl = `${window.location.protocol}//${scanHost}${port}/passport/${data?.passportId}`;
+        const isPublicDomain = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const mobileScanUrl = isPublicDomain
+          ? `${window.location.origin}/passport/${data?.passportId}`
+          : `${window.location.protocol}//${lanIp || 'localhost'}${window.location.port ? `:${window.location.port}` : ''}/passport/${data?.passportId}`;
         const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(mobileScanUrl)}`;
 
         return (

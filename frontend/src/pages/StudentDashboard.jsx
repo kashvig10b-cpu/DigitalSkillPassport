@@ -75,9 +75,10 @@ export default function StudentDashboard() {
   }, [user?.id]);
 
   const passportId = profileData?.profile?.passportId || user?.passportId || 'PASSPORT-PENDING';
-  const scanHost = lanIp || (window.location.hostname !== 'localhost' ? window.location.hostname : '10.167.66.101');
-  const port = window.location.port ? `:${window.location.port}` : '';
-  const mobilePassportUrl = `${window.location.protocol}//${scanHost}${port}/passport/${passportId}`;
+  const isPublicDomain = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  const mobilePassportUrl = isPublicDomain
+    ? `${window.location.origin}/passport/${passportId}`
+    : `${window.location.protocol}//${lanIp || 'localhost'}${window.location.port ? `:${window.location.port}` : ''}/passport/${passportId}`;
   const publicPassportUrl = `${window.location.origin}/passport/${passportId}`;
 
   const handleCopyLink = () => {
