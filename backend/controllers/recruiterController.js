@@ -47,9 +47,6 @@ const searchCandidates = async (req, res) => {
     if (location) {
       profileQuery.location = { $regex: new RegExp(location.trim(), 'i') };
     }
-    if (minCompletion) {
-      profileQuery.profileCompletion = { $gte: Number(minCompletion) };
-    }
 
     // User lookup query
     let userQuery = { role: 'student' };
@@ -76,15 +73,17 @@ const searchCandidates = async (req, res) => {
       'name email college profilePhoto'
     );
 
-    // Build candidate cards with associated skills, projects, and certificates
+    // Build candidate cards with associated skills, projects, certificates, and real completion metrics
     const candidates = await Promise.all(
       profiles.map(async (profile) => {
+        if (!profile.userId) return null;
         const studentId = profile.userId._id;
 
-        const [skills, projects, certificates] = await Promise.all([
+        const [skills, projects, certificates, educations] = await Promise.all([
           Skill.find({ studentId }).sort({ level: -1 }).select('name level category'),
           Project.find({ studentId }).select('title techStack liveUrl githubUrl'),
           Certificate.find({ studentId }).select('title issuer status'),
+          Education.find({ studentId }).select('_id'),
         ]);
 
         const verifiedCerts = certificates.filter((c) => c.status === 'VERIFIED');
@@ -102,6 +101,29 @@ const searchCandidates = async (req, res) => {
           if (!hasSkill) return null;
         }
 
+        // Calculate dynamic profile completion score (0 - 100%)
+        let completionScore = 0;
+        if (profile.userId.profilePhoto) completionScore += 10;
+        if (profile.bio && profile.bio.trim().length > 5) completionScore += 10;
+        if (profile.phone || profile.location) completionScore += 10;
+        if (profile.degree || profile.department) completionScore += 15;
+        if (educations.length > 0) completionScore += 15;
+        if (skills.length > 0) completionScore += 15;
+        if (projects.length > 0) completionScore += 15;
+        if (certificates.length > 0 || profile.resume) completionScore += 10;
+
+        const finalCompletion = Math.min(100, Math.round(completionScore));
+
+        // Save computed completion score to MongoDB in background
+        if (profile.profileCompletion !== finalCompletion) {
+          StudentProfile.updateOne({ _id: profile._id }, { profileCompletion: finalCompletion }).catch(() => {});
+        }
+
+        // Filter by minCompletion slider
+        if (minCompletion && finalCompletion < Number(minCompletion)) {
+          return null;
+        }
+
         return {
           id: studentId,
           passportId: profile.passportId,
@@ -117,7 +139,7 @@ const searchCandidates = async (req, res) => {
           linkedin: profile.linkedin || '',
           github: profile.github || '',
           portfolio: profile.portfolio || '',
-          profileCompletion: profile.profileCompletion || 0,
+          profileCompletion: finalCompletion,
           topSkills: skills.slice(0, 5),
           totalSkillsCount: skills.length,
           totalProjectsCount: projects.length,

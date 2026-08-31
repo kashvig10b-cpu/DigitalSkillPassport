@@ -33,9 +33,15 @@ const calculateProfileCompletion = async (user, profile, studentId) => {
   ];
 
   const totalScore = checks.reduce((acc, item) => acc + (item.completed ? item.weight : 0), 0);
+  const percentage = Math.min(100, Math.round(totalScore));
+
+  if (profile && profile.save && profile.profileCompletion !== percentage) {
+    profile.profileCompletion = percentage;
+    await profile.save().catch(() => {});
+  }
 
   return {
-    percentage: Math.min(100, Math.round(totalScore)),
+    percentage,
     checklist: checks,
     counts: {
       totalSkills: skillsCount,

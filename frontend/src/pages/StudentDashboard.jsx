@@ -61,16 +61,46 @@ export default function StudentDashboard() {
       joinStudentRoom(user.id);
     }
 
-    // Real-Time Socket.IO update handler
+    // Real-Time Socket.IO update handlers
     const handleProfileUpdate = (updatedPayload) => {
       console.log('[Socket.IO] Real-time profile update received:', updatedPayload);
       setProfileData(updatedPayload);
     };
 
+    const handleDataChange = () => {
+      fetchDashboardData();
+    };
+
     socket.on('profileUpdated', handleProfileUpdate);
+    socket.on('skillAdded', handleDataChange);
+    socket.on('skillUpdated', handleDataChange);
+    socket.on('skillDeleted', handleDataChange);
+    socket.on('projectAdded', handleDataChange);
+    socket.on('projectUpdated', handleDataChange);
+    socket.on('projectDeleted', handleDataChange);
+    socket.on('certificateUploaded', handleDataChange);
+    socket.on('certificateVerified', handleDataChange);
+    socket.on('certificateDeleted', handleDataChange);
+    socket.on('achievementAdded', handleDataChange);
+    socket.on('achievementDeleted', handleDataChange);
+    socket.on('educationAdded', handleDataChange);
+    socket.on('educationDeleted', handleDataChange);
 
     return () => {
       socket.off('profileUpdated', handleProfileUpdate);
+      socket.off('skillAdded', handleDataChange);
+      socket.off('skillUpdated', handleDataChange);
+      socket.off('skillDeleted', handleDataChange);
+      socket.off('projectAdded', handleDataChange);
+      socket.off('projectUpdated', handleDataChange);
+      socket.off('projectDeleted', handleDataChange);
+      socket.off('certificateUploaded', handleDataChange);
+      socket.off('certificateVerified', handleDataChange);
+      socket.off('certificateDeleted', handleDataChange);
+      socket.off('achievementAdded', handleDataChange);
+      socket.off('achievementDeleted', handleDataChange);
+      socket.off('educationAdded', handleDataChange);
+      socket.off('educationDeleted', handleDataChange);
     };
   }, [user?.id]);
 

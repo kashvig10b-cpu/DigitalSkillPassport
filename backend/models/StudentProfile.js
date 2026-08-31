@@ -67,6 +67,12 @@ const studentProfileSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    profileCompletion: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
   },
   {
     timestamps: true,
