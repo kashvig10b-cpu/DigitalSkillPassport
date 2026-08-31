@@ -12,6 +12,18 @@ const {
 // @access  Private (Recruiter, Admin)
 const searchCandidates = async (req, res) => {
   try {
+    // Recruiter Verification Gate: Block unapproved recruiters from accessing student data
+    if (req.user && req.user.role === 'recruiter') {
+      const recruiterUser = await User.findById(req.user.id);
+      if (recruiterUser && recruiterUser.recruiterStatus !== 'APPROVED') {
+        return res.status(403).json({
+          status: 'error',
+          code: 'RECRUITER_PENDING_APPROVAL',
+          message: 'Your recruiter account is pending administrative verification. Candidate records are locked until approved.',
+        });
+      }
+    }
+
     const {
       search,
       skill,

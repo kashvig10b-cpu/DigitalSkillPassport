@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { socket } from '../services/socket';
 import { useAuth } from '../context/AuthContext';
 import {
   Briefcase,
@@ -7,6 +8,7 @@ import {
   Filter,
   Users,
   ShieldCheck,
+  ShieldAlert,
   Award,
   GraduationCap,
   MapPin,
@@ -25,7 +27,11 @@ import {
   Send,
   QrCode,
   Copy,
-  Check
+  Check,
+  Building,
+  RefreshCw,
+  Clock,
+  Globe
 } from 'lucide-react';
 
 export default function RecruiterDashboard() {
@@ -33,6 +39,34 @@ export default function RecruiterDashboard() {
 
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [checkingApproval, setCheckingApproval] = useState(false);
+
+  // Auto-refresh when admin approves recruiter via real-time Socket.IO
+  useEffect(() => {
+    const handleStatus = (data) => {
+      if (data && (data.id === user?.id || data.id === user?._id)) {
+        window.location.reload();
+      }
+    };
+    socket.on('recruiterStatusChanged', handleStatus);
+    return () => socket.off('recruiterStatusChanged', handleStatus);
+  }, [user]);
+
+  const handleManualStatusCheck = async () => {
+    try {
+      setCheckingApproval(true);
+      const res = await api.get('/auth/me');
+      if (res.data?.user?.recruiterStatus === 'APPROVED') {
+        window.location.reload();
+      } else {
+        alert('Your recruiter verification is still pending university review.');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCheckingApproval(false);
+    }
+  };
   const [error, setError] = useState(null);
 
   // QR Modal state
@@ -356,19 +390,113 @@ ${user?.college || ''}`;
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Banner */}
-        <div className="p-8 rounded-3xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/20 shadow-xl space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
-            <Users className="w-3.5 h-3.5" />
-            <span>Verified Candidate Talent Scout</span>
+        {/* Recruiter Verification Barrier for Unapproved Accounts */}
+        {user?.recruiterStatus !== 'APPROVED' ? (
+          <div className="max-w-2xl mx-auto py-12 px-4">
+            <div className="p-8 sm:p-10 rounded-3xl bg-slate-900/90 border border-amber-500/30 backdrop-blur-xl shadow-2xl shadow-amber-950/20 text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400 shadow-lg shadow-amber-500/10">
+                {user?.recruiterStatus === 'REJECTED' ? (
+                  <ShieldAlert className="w-8 h-8 text-rose-400" />
+                ) : (
+                  <Clock className="w-8 h-8 text-amber-400 animate-pulse" />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold border tracking-wide uppercase">
+                  {user?.recruiterStatus === 'REJECTED' ? (
+                    <span className="bg-rose-500/10 text-rose-400 border-rose-500/30">
+                      Verification Rejected
+                    </span>
+                  ) : (
+                    <span className="bg-amber-500/10 text-amber-400 border-amber-500/30">
+                      ● Account Pending Verification
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+                  {user?.recruiterStatus === 'REJECTED'
+                    ? 'Recruiter Access Restricted'
+                    : 'Accreditation Under Administrative Review'}
+                </h2>
+                <p className="text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
+                  {user?.recruiterStatus === 'REJECTED'
+                    ? 'Your corporate registration could not be verified by university administration. Access to student records and resumes has been locked.'
+                    : 'To safeguard student data and prevent fraudulent recruitment scams, all corporate accounts require administrative accreditation before candidate resumes, portfolios, and direct contact channels are unlocked.'}
+                </p>
+              </div>
+
+              {/* Submitted Details Card */}
+              <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 text-left space-y-3 text-xs">
+                <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80">
+                  <span className="text-slate-400 font-medium">Organization / Company</span>
+                  <span className="text-white font-bold">{user?.company || user?.college || 'Not provided'}</span>
+                </div>
+                <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80">
+                  <span className="text-slate-400 font-medium">Registered Work Email</span>
+                  <span className="text-white font-mono">{user?.email}</span>
+                </div>
+                {user?.companyWebsite && (
+                  <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80">
+                    <span className="text-slate-400 font-medium">Website / Profile</span>
+                    <a
+                      href={user.companyWebsite.startsWith('http') ? user.companyWebsite : `https://${user.companyWebsite}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-400 hover:text-indigo-300 font-mono truncate max-w-[220px]"
+                    >
+                      {user.companyWebsite}
+                    </a>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-slate-400 font-medium">Live Approval Status</span>
+                  <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    Pending University Review
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={handleManualStatusCheck}
+                  disabled={checkingApproval}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${checkingApproval ? 'animate-spin' : ''}`} />
+                  <span>Check Status</span>
+                </button>
+                <button
+                  onClick={logout}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-500">
+                ⚡ Approvals sync in real-time. This portal will unlock automatically once approved by the administrator.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            Discover Pre-Verified Student Engineers
-          </h1>
-          <p className="text-sm text-slate-400 max-w-2xl">
-            Query candidates by verified competencies, accredited certificates, academic institutions, and live projects. Every student has an immutable QR passport.
-          </p>
-        </div>
+        ) : (
+          <>
+            {/* Banner */}
+            <div className="p-8 rounded-3xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/20 shadow-xl space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
+                <Users className="w-3.5 h-3.5" />
+                <span>Verified Candidate Talent Scout</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+                Discover Pre-Verified Student Engineers
+              </h1>
+              <p className="text-sm text-slate-400 max-w-2xl">
+                Query candidates by verified competencies, accredited certificates, academic institutions, and live projects. Every student has an immutable QR passport.
+              </p>
+            </div>
 
         {/* Multi-Criteria Filter Controls Panel */}
         <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
@@ -660,7 +788,9 @@ ${user?.college || ''}`;
             })}
           </div>
         )}
-      </main>
+      </>
+    )}
+  </main>
     </div>
   );
 }

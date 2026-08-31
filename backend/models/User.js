@@ -43,6 +43,25 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    company: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    companyWebsite: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    isVerifiedRecruiter: {
+      type: Boolean,
+      default: false,
+    },
+    recruiterStatus: {
+      type: String,
+      enum: ['PENDING', 'APPROVED', 'REJECTED'],
+      default: 'PENDING',
+    },
     resetPasswordToken: {
       type: String,
       default: null,

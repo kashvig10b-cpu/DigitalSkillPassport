@@ -10,7 +10,9 @@ import {
   AlertCircle, 
   QrCode, 
   GraduationCap, 
-  Briefcase 
+  Briefcase,
+  Globe,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function Register() {
@@ -21,6 +23,7 @@ export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [college, setCollege] = useState('');
+  const [companyWebsite, setCompanyWebsite] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,6 +57,8 @@ export default function Register() {
         password,
         role,
         college,
+        company: college,
+        companyWebsite,
       });
 
       if (registeredUser.role === 'student') {
@@ -186,7 +191,7 @@ export default function Register() {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                {role === 'student' ? 'College / University' : 'Company / Organization'}
+                {role === 'student' ? 'College / University' : 'Company / Organization Name'}
               </label>
               <div className="relative rounded-xl shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -196,11 +201,41 @@ export default function Register() {
                   type="text"
                   value={college}
                   onChange={(e) => setCollege(e.target.value)}
-                  placeholder={role === 'student' ? 'e.g. Stanford University' : 'e.g. Acme Technologies'}
+                  placeholder={role === 'student' ? 'e.g. Stanford University' : 'e.g. Microsoft, Google, TCS'}
                   className="block w-full pl-11 pr-4 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  required={role === 'recruiter'}
                 />
               </div>
             </div>
+
+            {role === 'recruiter' && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Company Website / LinkedIn URL
+                  </label>
+                  <div className="relative rounded-xl shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Globe className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="url"
+                      value={companyWebsite}
+                      onChange={(e) => setCompanyWebsite(e.target.value)}
+                      placeholder="https://company.com or linkedin.com/company/..."
+                      className="block w-full pl-11 pr-4 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5">
+                  <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Student Protection Gate:</strong> Recruiter accounts require university administrative review before candidate resumes and direct contacts are unlocked.
+                  </span>
+                </div>
+              </>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

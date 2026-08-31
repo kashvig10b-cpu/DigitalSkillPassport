@@ -15,12 +15,13 @@ const generateToken = (id, role) => {
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { name, email, password, role = 'student', college } = req.body;
+    const { name, email, password, role = 'student', college, company, companyWebsite } = req.body;
 
+    // Validate inputs
     if (!name || !email || !password) {
       return res.status(400).json({
         status: 'error',
-        message: 'Name, email, and password are required fields.',
+        message: 'Name, email, and password are required.',
       });
     }
 
@@ -49,6 +50,8 @@ const register = async (req, res) => {
       });
     }
 
+    const isRecruiter = userRole === 'recruiter';
+
     // Create user
     const user = await User.create({
       name,
@@ -56,6 +59,10 @@ const register = async (req, res) => {
       password,
       role: userRole,
       college: college || '',
+      company: company || college || '',
+      companyWebsite: companyWebsite || '',
+      recruiterStatus: isRecruiter ? 'PENDING' : 'APPROVED',
+      isVerifiedRecruiter: !isRecruiter,
     });
 
     let profile = null;
@@ -80,7 +87,9 @@ const register = async (req, res) => {
 
     res.status(201).json({
       status: 'success',
-      message: 'Account registered successfully',
+      message: isRecruiter
+        ? 'Recruiter account registered! Pending administrative review.'
+        : 'Account registered successfully',
       token,
       user: {
         id: user._id,
@@ -88,6 +97,10 @@ const register = async (req, res) => {
         email: user.email,
         role: user.role,
         college: user.college,
+        company: user.company,
+        companyWebsite: user.companyWebsite,
+        recruiterStatus: user.recruiterStatus,
+        isVerifiedRecruiter: user.isVerifiedRecruiter,
         profilePhoto: user.profilePhoto,
         passportId: profile ? profile.passportId : null,
       },
@@ -111,24 +124,25 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         status: 'error',
-        message: 'Please provide both email and password.',
+        message: 'Email and password are required',
       });
     }
 
-    // Find user and explicitly select password field
+    // Find user with password field explicitly selected
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     if (!user) {
       return res.status(401).json({
         status: 'error',
-        message: 'Invalid email or password credentials.',
+        message: 'Invalid email or password credentials',
       });
     }
 
+    // Compare password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
         status: 'error',
-        message: 'Invalid email or password credentials.',
+        message: 'Invalid email or password credentials',
       });
     }
 
@@ -159,6 +173,10 @@ const login = async (req, res) => {
         email: user.email,
         role: user.role,
         college: user.college,
+        company: user.company || user.college || '',
+        companyWebsite: user.companyWebsite || '',
+        recruiterStatus: user.recruiterStatus || (user.role === 'recruiter' ? 'APPROVED' : 'APPROVED'),
+        isVerifiedRecruiter: user.isVerifiedRecruiter ?? true,
         profilePhoto: user.profilePhoto,
         passportId,
       },
@@ -198,6 +216,10 @@ const getMe = async (req, res) => {
         email: user.email,
         role: user.role,
         college: user.college,
+        company: user.company || user.college || '',
+        companyWebsite: user.companyWebsite || '',
+        recruiterStatus: user.recruiterStatus || (user.role === 'recruiter' ? 'APPROVED' : 'APPROVED'),
+        isVerifiedRecruiter: user.isVerifiedRecruiter ?? true,
         profilePhoto: user.profilePhoto,
         passportId: profile ? profile.passportId : null,
       },

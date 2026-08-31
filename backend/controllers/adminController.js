@@ -14,6 +14,7 @@ const getAdminStats = async (req, res) => {
     const [
       totalStudents,
       totalRecruiters,
+      pendingRecruiters,
       pendingCerts,
       verifiedCerts,
       totalSkills,
@@ -21,6 +22,7 @@ const getAdminStats = async (req, res) => {
     ] = await Promise.all([
       User.countDocuments({ role: 'student' }),
       User.countDocuments({ role: 'recruiter' }),
+      User.countDocuments({ role: 'recruiter', recruiterStatus: 'PENDING' }),
       Certificate.countDocuments({ status: 'PENDING' }),
       Certificate.countDocuments({ status: 'VERIFIED' }),
       Skill.countDocuments(),
@@ -32,6 +34,7 @@ const getAdminStats = async (req, res) => {
       data: {
         totalStudents,
         totalRecruiters,
+        pendingRecruiters,
         pendingCerts,
         verifiedCerts,
         totalSkills,
@@ -165,9 +168,92 @@ const rejectCertificate = async (req, res) => {
   }
 };
 
+// @desc    Get all registered recruiters for security verification review
+// @route   GET /api/admin/recruiters
+// @access  Private (Admin)
+const getAdminRecruiters = async (req, res) => {
+  try {
+    const recruiters = await User.find({ role: 'recruiter' })
+      .select('name email college company companyWebsite recruiterStatus isVerifiedRecruiter createdAt')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      status: 'success',
+      count: recruiters.length,
+      data: recruiters,
+    });
+  } catch (error) {
+    console.error('[Admin Controller - GetRecruiters]', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// @desc    Approve a recruiter (unlocks candidate search and student contact access)
+// @route   PUT /api/admin/recruiters/:id/approve
+// @access  Private (Admin)
+const approveRecruiter = async (req, res) => {
+  try {
+    const recruiter = await User.findById(req.params.id);
+    if (!recruiter || recruiter.role !== 'recruiter') {
+      return res.status(404).json({ status: 'error', message: 'Recruiter account not found' });
+    }
+
+    recruiter.recruiterStatus = 'APPROVED';
+    recruiter.isVerifiedRecruiter = true;
+    await recruiter.save();
+
+    if (req.io) {
+      req.io.to('admin_room').emit('recruiterUpdated', recruiter);
+      req.io.emit('recruiterStatusChanged', { id: recruiter._id, status: 'APPROVED' });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: `Recruiter "${recruiter.name}" (${recruiter.company || recruiter.email}) APPROVED! Candidate access unlocked.`,
+      data: recruiter,
+    });
+  } catch (error) {
+    console.error('[Admin Controller - ApproveRecruiter]', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// @desc    Reject a recruiter
+// @route   PUT /api/admin/recruiters/:id/reject
+// @access  Private (Admin)
+const rejectRecruiter = async (req, res) => {
+  try {
+    const recruiter = await User.findById(req.params.id);
+    if (!recruiter || recruiter.role !== 'recruiter') {
+      return res.status(404).json({ status: 'error', message: 'Recruiter account not found' });
+    }
+
+    recruiter.recruiterStatus = 'REJECTED';
+    recruiter.isVerifiedRecruiter = false;
+    await recruiter.save();
+
+    if (req.io) {
+      req.io.to('admin_room').emit('recruiterUpdated', recruiter);
+      req.io.emit('recruiterStatusChanged', { id: recruiter._id, status: 'REJECTED' });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: `Recruiter "${recruiter.name}" REJECTED. Access remains locked.`,
+      data: recruiter,
+    });
+  } catch (error) {
+    console.error('[Admin Controller - RejectRecruiter]', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
 module.exports = {
   getAdminStats,
   getAdminCertificates,
   verifyCertificate,
   rejectCertificate,
+  getAdminRecruiters,
+  approveRecruiter,
+  rejectRecruiter,
 };
