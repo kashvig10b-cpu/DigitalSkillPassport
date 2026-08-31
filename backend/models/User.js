@@ -62,6 +62,10 @@ const userSchema = new mongoose.Schema(
       enum: ['PENDING', 'APPROVED', 'REJECTED'],
       default: 'PENDING',
     },
+    resume: {
+      type: String,
+      default: '',
+    },
     resetPasswordToken: {
       type: String,
       default: null,

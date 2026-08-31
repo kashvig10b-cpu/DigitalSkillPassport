@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { getFileUrl } from '../utils/fileUrl';
 import {
   FileText,
@@ -18,7 +19,10 @@ import {
 } from 'lucide-react';
 
 export default function StudentResume() {
-  const [resumeUrl, setResumeUrl] = useState('');
+  const { user } = useAuth();
+  const [resumeUrl, setResumeUrl] = useState(() => {
+    return localStorage.getItem(`dsp_cached_resume_${user?.id || 'me'}`) || '';
+  });
   const [loading, setLoading] = useState(true);
   const [uploadMode, setUploadMode] = useState('file'); // 'file' | 'link'
   const [selectedFile, setSelectedFile] = useState(null);
@@ -33,8 +37,11 @@ export default function StudentResume() {
     try {
       setLoading(true);
       const res = await api.get('/profile');
-      const currentResume = res.data?.data?.profile?.resume || '';
+      const currentResume = res.data?.data?.profile?.resume || res.data?.data?.user?.resume || '';
       setResumeUrl(currentResume);
+      if (currentResume) {
+        localStorage.setItem(`dsp_cached_resume_${user?.id || 'me'}`, currentResume);
+      }
       if (currentResume.startsWith('http')) {
         setLinkInput(currentResume);
       }
@@ -46,8 +53,12 @@ export default function StudentResume() {
   };
 
   useEffect(() => {
+    const cached = localStorage.getItem(`dsp_cached_resume_${user?.id || 'me'}`);
+    if (cached) {
+      setResumeUrl(cached);
+    }
     fetchResume();
-  }, []);
+  }, [user?.id]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -113,8 +124,11 @@ export default function StudentResume() {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
 
-        const newResume = res.data?.data?.resume || '';
+        const newResume = res.data?.data?.resume || res.data?.data?.profile?.resume || '';
         setResumeUrl(newResume);
+        if (newResume) {
+          localStorage.setItem(`dsp_cached_resume_${user?.id || 'me'}`, newResume);
+        }
         setSelectedFile(null);
         setSuccess('Resume document uploaded and verified successfully in MongoDB!');
       } else {
@@ -127,6 +141,9 @@ export default function StudentResume() {
         const res = await api.post('/profile/resume', { resumeUrl: linkInput.trim() });
         const newResume = res.data?.data?.resume || linkInput.trim();
         setResumeUrl(newResume);
+        if (newResume) {
+          localStorage.setItem(`dsp_cached_resume_${user?.id || 'me'}`, newResume);
+        }
         setSuccess('Resume link updated successfully in MongoDB!');
       }
 
@@ -150,6 +167,7 @@ export default function StudentResume() {
       setResumeUrl('');
       setSelectedFile(null);
       setLinkInput('');
+      localStorage.removeItem(`dsp_cached_resume_${user?.id || 'me'}`);
       setSuccess('Resume removed successfully from your passport.');
       setTimeout(() => setSuccess(null), 3500);
     } catch (err) {
@@ -161,9 +179,12 @@ export default function StudentResume() {
 
   const getCleanFileName = (url) => {
     if (!url) return '';
+    if (url.includes('/api/files/')) {
+      const parts = url.split('/');
+      return decodeURIComponent(parts[parts.length - 1] || 'resume.pdf');
+    }
     if (url.startsWith('/uploads/')) {
       const parts = url.replace('/uploads/', '').split('-');
-      // Return the original clean name portion
       return parts.slice(2).join('-') || url.replace('/uploads/', '');
     }
     return url;

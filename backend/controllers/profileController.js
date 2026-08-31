@@ -69,7 +69,18 @@ const getProfile = async (req, res) => {
       profile = await StudentProfile.create({
         userId: user._id,
         passportId,
+        resume: user.resume || '',
       });
+    }
+
+    if (profile) {
+      if (!profile.resume && user.resume) {
+        profile.resume = user.resume;
+        await profile.save().catch(() => {});
+      } else if (profile.resume && !user.resume) {
+        user.resume = profile.resume;
+        await user.save().catch(() => {});
+      }
     }
 
     // Fetch verified credentials count
@@ -90,6 +101,7 @@ const getProfile = async (req, res) => {
           college: user.college,
           profilePhoto: user.profilePhoto,
           role: user.role,
+          resume: profile?.resume || user.resume || '',
         },
         profile: profile || {},
         stats: {
@@ -161,8 +173,11 @@ const updateProfile = async (req, res) => {
     if (graduationYear !== undefined) profile.graduationYear = graduationYear;
     if (linkedin !== undefined) profile.linkedin = linkedin;
     if (github !== undefined) profile.github = github;
-    if (portfolio !== undefined) profile.portfolio = portfolio;
-    if (resume !== undefined) profile.resume = resume;
+    if (resume !== undefined && typeof resume === 'string' && resume.trim() !== '') {
+      profile.resume = resume.trim();
+      user.resume = resume.trim();
+      await user.save().catch(() => {});
+    }
 
     await profile.save();
 
@@ -244,16 +259,18 @@ const uploadResume = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Please attach a document or enter a resume URL' });
     }
 
-    let profile = await StudentProfile.findOne({ userId: user._id });
-    if (!profile) {
-      profile = new StudentProfile({
-        userId: user._id,
-        passportId: StudentProfile.generatePassportId(user.name),
-      });
-    }
+    // Persist to both User and StudentProfile atomically
+    user.resume = resumeUrl;
+    await user.save().catch(() => {});
 
-    profile.resume = resumeUrl;
-    await profile.save();
+    let profile = await StudentProfile.findOneAndUpdate(
+      { userId: user._id },
+      { 
+        $set: { resume: resumeUrl },
+        $setOnInsert: { passportId: StudentProfile.generatePassportId(user.name) }
+      },
+      { new: true, upsert: true }
+    );
 
     const verifiedCredentialsCount = await Certificate.countDocuments({
       studentId: user._id,
@@ -316,11 +333,14 @@ const deleteResume = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'User not found' });
     }
 
-    let profile = await StudentProfile.findOne({ userId: user._id });
-    if (profile) {
-      profile.resume = '';
-      await profile.save();
-    }
+    user.resume = '';
+    await user.save().catch(() => {});
+
+    let profile = await StudentProfile.findOneAndUpdate(
+      { userId: user._id },
+      { $set: { resume: '' } },
+      { new: true }
+    );
 
     const verifiedCredentialsCount = await Certificate.countDocuments({
       studentId: user._id,

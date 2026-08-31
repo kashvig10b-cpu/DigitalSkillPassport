@@ -111,7 +111,6 @@ export default function StudentProfile() {
         linkedin: formData.linkedin,
         github: formData.github,
         portfolio: formData.portfolio,
-        resume: formData.resume,
       });
 
       setSuccessMessage('Profile saved successfully! Database and Passport are up to date.');
