@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { socket } from '../services/socket';
 import { useAuth } from '../context/AuthContext';
+import { getFileUrl } from '../utils/fileUrl';
 import {
   ShieldCheck,
   Award,
@@ -425,7 +426,7 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             {filtered.map((cert) => {
               const fileDownloadUrl = cert.fileUrl
-                ? `http://localhost:5000${cert.fileUrl}`
+                ? getFileUrl(cert.fileUrl)
                 : null;
               const isProcessing = processingId === cert._id;
 

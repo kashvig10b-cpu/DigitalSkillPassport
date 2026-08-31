@@ -4,6 +4,7 @@ import axios from 'axios';
 import api from '../services/api';
 import { socket } from '../services/socket';
 import SkillRadarChart from '../components/SkillRadarChart';
+import { getFileUrl } from '../utils/fileUrl';
 import {
   ShieldCheck,
   Award,
@@ -401,7 +402,7 @@ export default function PublicPassport() {
                   )}
                   {student.resume && (
                     <a
-                      href={student.resume}
+                      href={getFileUrl(student.resume)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-xs text-indigo-300 border border-indigo-500/30 transition-colors font-semibold"
@@ -543,7 +544,7 @@ export default function PublicPassport() {
               {certificates.map((c) => {
                 const isVerified = c.status === 'VERIFIED';
                 const fileDownloadUrl = c.fileUrl
-                  ? `http://localhost:5000${c.fileUrl}`
+                  ? getFileUrl(c.fileUrl)
                   : null;
 
                 return (

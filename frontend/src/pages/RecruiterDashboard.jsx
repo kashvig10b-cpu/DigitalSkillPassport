@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { socket } from '../services/socket';
 import { useAuth } from '../context/AuthContext';
+import { getFileUrl } from '../utils/fileUrl';
 import {
   Briefcase,
   Search,
@@ -763,7 +764,7 @@ ${user?.college || ''}`;
 
                       {cand.resume && (
                         <a
-                          href={cand.resume}
+                          href={getFileUrl(cand.resume)}
                           target="_blank"
                           rel="noreferrer"
                           className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all"

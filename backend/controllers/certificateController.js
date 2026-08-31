@@ -1,4 +1,4 @@
-const { Certificate, StudentProfile } = require('../models');
+const { Certificate, StudentProfile, FileAttachment } = require('../models');
 const path = require('path');
 const fs = require('fs');
 
@@ -49,7 +49,16 @@ const createCertificate = async (req, res) => {
 
     let fileUrl = '';
     if (req.file) {
-      fileUrl = `/uploads/${req.file.filename}`;
+      const originalname = req.file.originalname || 'certificate.pdf';
+      const attachment = await FileAttachment.create({
+        filename: `cert-${req.user._id}-${Date.now()}${path.extname(originalname)}`,
+        originalname,
+        mimetype: req.file.mimetype || 'application/pdf',
+        size: req.file.size || (req.file.buffer ? req.file.buffer.length : 0),
+        data: req.file.buffer,
+        uploadedBy: req.user._id,
+      });
+      fileUrl = `/api/files/${attachment._id}/${encodeURIComponent(originalname)}`;
     }
 
     const certificate = await Certificate.create({

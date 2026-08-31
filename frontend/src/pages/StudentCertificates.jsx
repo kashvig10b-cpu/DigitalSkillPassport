@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { socket } from '../services/socket';
+import { getFileUrl } from '../utils/fileUrl';
 import {
   Award,
   Plus,
@@ -302,7 +303,7 @@ export default function StudentCertificates() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredCerts.map((cert) => {
             const fileDownloadUrl = cert.fileUrl
-              ? `http://localhost:5000${cert.fileUrl}`
+              ? getFileUrl(cert.fileUrl)
               : null;
 
             return (

@@ -13,6 +13,7 @@ const experienceRouter = require('./experience');
 const adminRouter = require('./admin');
 const passportRouter = require('./passport');
 const recruiterRouter = require('./recruiter');
+const fileRouter = require('./fileRoutes');
 
 const os = require('os');
 
@@ -54,5 +55,6 @@ router.use('/experience', experienceRouter);
 router.use('/admin', adminRouter);
 router.use('/passport', passportRouter);
 router.use('/recruiter', recruiterRouter);
+router.use('/files', fileRouter);
 
 module.exports = router;

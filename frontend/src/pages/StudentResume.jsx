@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { getFileUrl } from '../utils/fileUrl';
 import {
   FileText,
   UploadCloud,
@@ -234,7 +235,7 @@ export default function StudentResume() {
 
             <div className="flex items-center gap-2">
               <a
-                href={resumeUrl}
+                href={getFileUrl(resumeUrl)}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition-all cursor-pointer"

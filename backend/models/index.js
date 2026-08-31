@@ -6,6 +6,7 @@ const Certificate = require('./Certificate');
 const Achievement = require('./Achievement');
 const Education = require('./Education');
 const Experience = require('./Experience');
+const FileAttachment = require('./FileAttachment');
 
 module.exports = {
   User,
@@ -16,4 +17,5 @@ module.exports = {
   Achievement,
   Education,
   Experience,
+  FileAttachment,
 };

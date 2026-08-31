@@ -7,7 +7,9 @@ const {
   Achievement,
   Education,
   Experience,
+  FileAttachment,
 } = require('../models');
+const path = require('path');
 
 // Helper to calculate profile completion from real MongoDB data
 const calculateProfileCompletion = async (user, profile, studentId) => {
@@ -220,7 +222,16 @@ const uploadResume = async (req, res) => {
 
     let resumeUrl = req.body.resumeUrl || '';
     if (req.file) {
-      resumeUrl = `/uploads/${req.file.filename}`;
+      const originalname = req.file.originalname || 'resume.pdf';
+      const attachment = await FileAttachment.create({
+        filename: `resume-${user._id}-${Date.now()}${path.extname(originalname)}`,
+        originalname,
+        mimetype: req.file.mimetype || 'application/pdf',
+        size: req.file.size || (req.file.buffer ? req.file.buffer.length : 0),
+        data: req.file.buffer,
+        uploadedBy: user._id,
+      });
+      resumeUrl = `/api/files/${attachment._id}/${encodeURIComponent(originalname)}`;
     }
 
     if (!resumeUrl) {
