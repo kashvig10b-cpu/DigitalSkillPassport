@@ -546,17 +546,21 @@ ${user?.college || ''}`;
 
             {/* Degree Filter */}
             <div className="space-y-1">
-              <label className="font-semibold text-slate-400">Degree</label>
+              <label className="font-semibold text-slate-400">Degree / Branch</label>
               <select
                 value={filters.degree}
                 onChange={(e) => setFilters({ ...filters, degree: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
               >
-                <option value="">All Degrees</option>
-                <option value="B.Tech">B.Tech / B.E.</option>
-                <option value="M.Tech">M.Tech / M.S.</option>
-                <option value="BCA">BCA / MCA</option>
-                <option value="Computer Science">Computer Science</option>
+                <option value="">All Degrees & Branches</option>
+                <option value="B.Tech">B.Tech / B.E. (Engineering)</option>
+                <option value="M.Tech">M.Tech / M.E. / M.S.</option>
+                <option value="BCA">BCA / MCA (Computer Applications)</option>
+                <option value="B.Sc">B.Sc / M.Sc</option>
+                <option value="Computer Science">Computer Science & Engg</option>
+                {filterOptions?.degrees?.filter(d => d && !['B.Tech', 'M.Tech', 'BCA', 'B.Sc', 'Computer Science'].includes(d)).map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
               </select>
             </div>
 
@@ -686,8 +690,15 @@ ${user?.college || ''}`;
                       </span>
                     </div>
 
-                    <div className="text-xs text-slate-300 font-medium">
-                      {cand.degree} {cand.department && `• ${cand.department}`}
+                    <div className="text-xs text-slate-300 font-medium flex items-center gap-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-800 text-emerald-300 font-semibold border border-slate-700/80">
+                        {cand.degree || 'Degree not specified'}
+                      </span>
+                      {cand.department && (
+                        <span className="text-slate-400 font-normal">
+                          • {cand.department}
+                        </span>
+                      )}
                     </div>
 
                     {cand.location && (

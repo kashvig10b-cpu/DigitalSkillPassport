@@ -35,16 +35,50 @@ const searchCandidates = async (req, res) => {
       verifiedOnly,
     } = req.query;
 
-    // Base query for StudentProfile
-    let profileQuery = {};
+    // Intelligent Degree & Department Query Builder
+    if (degree && degree.trim()) {
+      const d = degree.trim();
+      let degreeRegex;
+      
+      if (/b[\.\s\-]*tech|b[\.\s\-]*e|bachelor/i.test(d)) {
+        degreeRegex = /b[\s\.\-_]*tech|b[\s\.\-_]*e\b|bachelor\s*(of)?\s*(engineering|technology|tech)|btech|b\.e/i;
+      } else if (/m[\.\s\-]*tech|m[\.\s\-]*e|master|m\.?s/i.test(d)) {
+        degreeRegex = /m[\s\.\-_]*tech|m[\s\.\-_]*e\b|master\s*(of)?\s*(engineering|technology|tech|science)|mtech|m\.s\b|ms\b/i;
+      } else if (/bca|mca/i.test(d)) {
+        degreeRegex = /bca|mca|computer\s*applications/i;
+      } else if (/b[\.\s\-]*sc|m[\.\s\-]*sc/i.test(d)) {
+        degreeRegex = /b[\s\.\-_]*sc|m[\s\.\-_]*sc|bachelor\s*(of)?\s*science|master\s*(of)?\s*science/i;
+      } else if (/computer\s*science|cse/i.test(d)) {
+        degreeRegex = /computer\s*science|cse|cs\b|software\s*engineering/i;
+      } else {
+        // Fallback: escaped regex for any custom degree
+        const escaped = d.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+        degreeRegex = new RegExp(escaped, 'i');
+      }
 
-    if (degree) {
-      profileQuery.degree = { $regex: new RegExp(degree.trim(), 'i') };
+      profileQuery.$or = [
+        { degree: { $regex: degreeRegex } },
+        { department: { $regex: degreeRegex } }
+      ];
     }
-    if (department) {
-      profileQuery.department = { $regex: new RegExp(department.trim(), 'i') };
+
+    if (department && department.trim()) {
+      const deptRegex = new RegExp(department.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'i');
+      if (profileQuery.$or) {
+        profileQuery.$and = [
+          { $or: profileQuery.$or },
+          { $or: [{ department: { $regex: deptRegex } }, { degree: { $regex: deptRegex } }] }
+        ];
+        delete profileQuery.$or;
+      } else {
+        profileQuery.$or = [
+          { department: { $regex: deptRegex } },
+          { degree: { $regex: deptRegex } }
+        ];
+      }
     }
-    if (location) {
+
+    if (location && location.trim()) {
       profileQuery.location = { $regex: new RegExp(location.trim(), 'i') };
     }
 
