@@ -35,6 +35,9 @@ const searchCandidates = async (req, res) => {
       verifiedOnly,
     } = req.query;
 
+    // Base query for StudentProfile
+    let profileQuery = {};
+
     // Intelligent Degree & Department Query Builder
     if (degree && degree.trim()) {
       const d = degree.trim();
